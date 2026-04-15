@@ -10,12 +10,9 @@
 
   <style>
     :root {
-      --bg: #fbfbfb;
-      --card: #ffffff;
       --text: #1f2430;
       --muted: #4f5560;
-      --shadow: 0 10px 28px rgba(24, 31, 56, 0.06);
-      --radius: 18px;
+      --accent: #d71c1c;
     }
 
     * {
@@ -25,104 +22,82 @@
     html, body {
       margin: 0;
       padding: 0;
-      background: var(--bg);
-      color: var(--text);
+      background: #fbfbfb;
       font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
     body {
-      min-height: 100vh;
+      min-height: auto;
     }
 
     .wrap {
-      max-width: 1240px;
+      width: 100%;
       margin: 0 auto;
       padding: 28px 16px 40px;
+      background: transparent;
     }
 
-    .cards {
+    .counter-block {
       width: 100%;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(240px, 1fr));
-      gap: 40px;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid #ffffff;
-      border-radius: var(--radius);
-      padding: 22px 20px 18px;
-      min-height: 118px;
-      box-shadow: var(--shadow);
-      text-align: left;
       display: flex;
       flex-direction: column;
+      align-items: center;
       justify-content: center;
+      text-align: center;
+      background: transparent;
     }
 
-    .card__value {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-      line-height: 1.1;
-    }
-
-    .card__value strong {
-      font-size: 42px;
-      line-height: 1;
-      color: var(--text);
+    .counter-number {
+      font-size: clamp(72px, 12vw, 170px);
+      line-height: 0.92;
       font-weight: 700;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.05em;
+      color: var(--accent);
+      margin: 0;
     }
 
-    .card__desc {
-      font-size: 15px;
+    .counter-label {
+      margin-top: 10px;
+      font-size: 18px;
       line-height: 1.35;
-      color: var(--muted);
       font-weight: 500;
-      max-width: 24ch;
-    }
-
-    @media (max-width: 1040px) {
-      .cards {
-        grid-template-columns: repeat(2, minmax(220px, 1fr));
-      }
+      color: var(--muted);
     }
 
     @media (max-width: 680px) {
       .wrap {
-        padding-inline: 12px;
+        padding: 20px 12px 28px;
       }
 
-      .cards {
-        grid-template-columns: 1fr;
-      }
-
-      .card__value strong {
-        font-size: 34px;
+      .counter-label {
+        font-size: 15px;
       }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <section class="cards" id="cards"></section>
+    <section class="counter-block" id="war-counter-block">
+      <div class="counter-number" id="war-counter">0</div>
+      <div class="counter-label" id="war-counter-label">дней войны</div>
+    </section>
   </div>
 
   <script>
-    const WAR_START_DATE = '2023-04-15';
+    const WAR_START_DATE = '2023-04-15T00:00:00';
 
     function formatNumber(value) {
       return new Intl.NumberFormat('ru-RU').format(value);
     }
 
     function getWarDays(startDateStr) {
-      const start = new Date(startDateStr + 'T00:00:00');
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const start = new Date(startDateStr);
+      const now = new Date();
 
-      const diffMs = today - start;
+      start.setHours(0, 0, 0, 0);
+      now.setHours(0, 0, 0, 0);
+
+      const diffMs = now - start;
       const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
       return diffDays + 1;
@@ -137,52 +112,14 @@
       return 'дней войны';
     }
 
-    const warDays = getWarDays(WAR_START_DATE);
-
-    const cards = [
-
-      {
-        value: warDays,
-        description: getRussianDayWord(warDays),
-        type: 'number'
-      },
-      {
-        value: 59000,
-        description: 'минимум смертей, связанных с конфликтом, на апрель 2026 года, по данным ACLED',
-        type: 'number'
-      },
-      {
-        value: 600,
-        description: 'рост смертности в 2025 году по сравнению с 2024-м',
-        type: 'percent'
-      }
-    ];
-
-    const cardsContainer = document.getElementById('cards');
-
-    function buildCards() {
-      cardsContainer.innerHTML = cards.map(card => `
-        <article class="card">
-          <div class="card__value">
-            <strong
-              class="${card.type === 'percent' ? 'counter-percent' : 'counter-value'}"
-              data-target="${card.value}"
-            >
-              ${card.type === 'percent' ? '0%' : '0'}
-            </strong>
-            <div class="card__desc">${card.description}</div>
-          </div>
-        </article>
-      `).join('');
-    }
-
-    function animateNumber(element, target, duration = 1100) {
+    function animateNumber(element, target, duration = 1400) {
       const start = performance.now();
 
       function tick(now) {
         const progress = Math.min((now - start) / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(target * eased);
+
         element.textContent = formatNumber(current);
 
         if (progress < 1) {
@@ -193,35 +130,28 @@
       requestAnimationFrame(tick);
     }
 
-    function animatePercent(element, target, duration = 1100) {
-      const start = performance.now();
+    const counterBlock = document.getElementById('war-counter-block');
+    const counterElement = document.getElementById('war-counter');
+    const labelElement = document.getElementById('war-counter-label');
 
-      function tick(now) {
-        const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const current = Math.round(target * eased);
-        element.textContent = `${current}%`;
+    const warDays = getWarDays(WAR_START_DATE);
+    labelElement.textContent = getRussianDayWord(warDays);
 
-        if (progress < 1) {
-          requestAnimationFrame(tick);
+    let hasAnimated = false;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!hasAnimated && entry.isIntersecting) {
+          hasAnimated = true;
+          animateNumber(counterElement, warDays, 1400);
+          observer.disconnect();
         }
-      }
-
-      requestAnimationFrame(tick);
-    }
-
-    function initAnimations() {
-      document.querySelectorAll('.counter-value').forEach(el => {
-        animateNumber(el, Number(el.dataset.target));
       });
+    }, {
+      threshold: 0.45
+    });
 
-      document.querySelectorAll('.counter-percent').forEach(el => {
-        animatePercent(el, Number(el.dataset.target));
-      });
-    }
-
-    buildCards();
-    initAnimations();
+    observer.observe(counterBlock);
   </script>
 </body>
 </html>
